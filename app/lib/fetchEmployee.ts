@@ -248,10 +248,9 @@ export async function fetchAllEmployees(
         
         console.log("[fetchAllEmployees] Fetching for Payroll:", payrollPDA.toBase58());
 
-        // Employee Discriminator: sha256("account:Employee")[..8]
-        // [98, 238, 61, 252, 130, 77, 105, 67] -> Base58: Gv8UvX61jE5
-        const EMPLOYEE_DISCRIMINATOR_B58 = "Gv8UvX61jE5";
-
+        // We remove the strict discriminator filter to ensure we catch all accounts (Legacy & Modern)
+        // that belong to this payroll. The payroll PDA is at offset 8 (after 8-byte discriminator).
+        
         let accounts: any[] = [];
         let retries = 3;
         let delay = 2000;
@@ -262,13 +261,7 @@ export async function fetchAllEmployees(
                     filters: [
                         {
                             memcmp: {
-                                offset: 0, 
-                                bytes: EMPLOYEE_DISCRIMINATOR_B58,
-                            },
-                        },
-                        {
-                            memcmp: {
-                                offset: 8, // After discriminator
+                                offset: 8, // After discriminator (8 bytes), looking for payroll PDA
                                 bytes: payrollPDA.toBase58(),
                             },
                         },
