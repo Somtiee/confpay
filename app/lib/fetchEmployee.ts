@@ -253,9 +253,7 @@ export async function fetchAllEmployees(
 
         // Employee Discriminator: sha256("account:Employee")[..8]
         // [98, 238, 61, 252, 130, 77, 105, 67]
-        // Base58: Gv8UvX61jE5 (approx, but we use bytes)
-        // Pre-computed Base58 string to save encoding time
-        const EMPLOYEE_DISCRIMINATOR_B58 = "Gv8UvX61jE5"; // 98, 238, 61, 252, 130, 77, 105, 67
+        const EMPLOYEE_DISCRIMINATOR = Buffer.from([98, 238, 61, 252, 130, 77, 105, 67]);
 
         let accounts: any[] = [];
         let retries = 3;
@@ -268,7 +266,7 @@ export async function fetchAllEmployees(
                         {
                             memcmp: {
                                 offset: 0, 
-                                bytes: EMPLOYEE_DISCRIMINATOR_B58,
+                                bytes: anchor.utils.bytes.bs58.encode(EMPLOYEE_DISCRIMINATOR),
                             },
                         },
                         {
