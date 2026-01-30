@@ -911,6 +911,8 @@ export default function EmployerDashboard() {
   const loadHistory = async () => {
      // Refresh history
      if (!publicKey) return;
+     if (historyLoading) return; // Prevent concurrent fetches
+
      setHistoryLoading(true);
      setHistoryError(null);
     try {
@@ -949,9 +951,9 @@ export default function EmployerDashboard() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gray-50 p-8 animate-fade-in">
-      <header className="flex justify-between items-center mb-12">
-        <div className="flex items-center gap-4">
+    <div className="min-h-screen bg-gray-50 p-4 md:p-8 animate-fade-in">
+      <header className="flex flex-col md:flex-row justify-between items-center mb-8 md:mb-12 gap-6 md:gap-0">
+        <div className="flex items-center gap-4 w-full md:w-auto justify-center md:justify-start">
           <Link href="/">
              <img 
                src="/logo.png" 
@@ -968,7 +970,7 @@ export default function EmployerDashboard() {
             {companyName || "Employer Dashboard"}
           </h1>
         </div>
-        <div className="flex items-center gap-2 md:gap-4">
+        <div className="flex items-center justify-center gap-2 md:gap-4 w-full md:w-auto flex-wrap">
            {employees.length > 0 && (
                <button
                   onClick={handleUnlockSalaries}

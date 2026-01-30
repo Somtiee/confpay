@@ -19,13 +19,7 @@ import { WalletModalProvider } from "@solana/wallet-adapter-react-ui";
 import { PhantomWalletAdapter } from "@solana/wallet-adapter-wallets";
 import { PublicKey } from "@solana/web3.js";
 import "@solana/wallet-adapter-react-ui/styles.css";
-import { PROGRAM_ID } from "./lib/anchor";
-
-// RPC Endpoints with Fallback Strategy
-const RPC_ENDPOINTS = [
-  "https://devnet.helius-rpc.com/?api-key=b0cc0944-d97f-42ea-8336-fb7e52dad8e1",
-  "https://api.devnet.solana.com",
-];
+import { PROGRAM_ID, RPC_ENDPOINTS } from "./lib/anchor";
 
 // --- RPC Connection Context ---
 interface RpcContextType {

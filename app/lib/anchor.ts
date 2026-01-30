@@ -9,7 +9,6 @@ export const PROGRAM_ID = new PublicKey("EpWKv3uvNXVioG5J7WhyDoPy1G6LJ9vTbTcbiKZ
 export const RPC_ENDPOINTS = [
     "https://devnet.helius-rpc.com/?api-key=b0cc0944-d97f-42ea-8336-fb7e52dad8e1",
     "https://api.devnet.solana.com",
-    "https://devnet.genesysgo.net/",
 ];
 
 export function getProvider(wallet: any, connection?: Connection) {

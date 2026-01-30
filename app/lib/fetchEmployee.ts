@@ -237,12 +237,9 @@ export async function fetchAllEmployees(
             provider = getProvider(wallet);
         }
         
-        // Deep clone IDL
-        const idlClone = JSON.parse(JSON.stringify(idl));
-        idlClone.address = PROGRAM_ID.toBase58();
-        idlClone.events = []; // CRITICAL FIX: Strip events to prevent "Event not found" errors
-        
-        const program = new anchor.Program(idlClone, provider);
+        // Deep clone IDL and strip events to prevent errors
+        const idlClone = { ...idl, address: PROGRAM_ID.toBase58(), events: [] };
+        const program = new anchor.Program(idlClone as anchor.Idl, provider);
 
         const [payrollPDA] = PublicKey.findProgramAddressSync(
           [Buffer.from("payroll"), new PublicKey(employerAddress).toBuffer()],
@@ -252,8 +249,8 @@ export async function fetchAllEmployees(
         console.log("[fetchAllEmployees] Fetching for Payroll:", payrollPDA.toBase58());
 
         // Employee Discriminator: sha256("account:Employee")[..8]
-        // [98, 238, 61, 252, 130, 77, 105, 67]
-        const EMPLOYEE_DISCRIMINATOR = Buffer.from([98, 238, 61, 252, 130, 77, 105, 67]);
+        // [98, 238, 61, 252, 130, 77, 105, 67] -> Base58: Gv8UvX61jE5
+        const EMPLOYEE_DISCRIMINATOR_B58 = "Gv8UvX61jE5";
 
         let accounts: any[] = [];
         let retries = 3;
@@ -266,7 +263,7 @@ export async function fetchAllEmployees(
                         {
                             memcmp: {
                                 offset: 0, 
-                                bytes: anchor.utils.bytes.bs58.encode(EMPLOYEE_DISCRIMINATOR),
+                                bytes: EMPLOYEE_DISCRIMINATOR_B58,
                             },
                         },
                         {
@@ -290,60 +287,21 @@ export async function fetchAllEmployees(
         
         console.log("[fetchAllEmployees] Found accounts:", accounts.length);
 
-        // Debug: Log registered account names in Coder
-        // @ts-ignore
-        // console.log("Registered Account Types:", Object.keys(program.coder.accounts.accountLayouts));
-
         return accounts.map(acc => {
             try {
-                // Try decoding with case fallback
+                // Try decoding with standard Coder
                 try {
-                    if (acc.account.data.length < 80) {
-                        console.warn(`[fetchAllEmployees] Account data too short (${acc.account.data.length} bytes), skipping.`);
-                        return null;
-                    }
-                    
-                    let account: any;
-                    try {
-                        account = program.coder.accounts.decode("Employee", acc.account.data);
-                    } catch (decodeErr) {
-                        console.warn("Coder decode failed, trying manual decode fallback...", decodeErr);
-                        return decodeLegacyEmployee(acc.account.data);
-                    }
-
-                    const normalized: EmployeeData = {
-                        payroll: account.payroll,
-                        wallet: account.wallet,
-                        name: account.name,
-                        role: account.role,
-                        encryptedSalary: Array.isArray(account.ciphertext) ? account.ciphertext : (Buffer.isBuffer(account.ciphertext) ? Array.from(account.ciphertext) : (account.encryptedSalary || account.encrypted_salary || [])),
-                        inputType: account.input_type ?? account.inputType ?? 4,
-                        pin: account.pin,
-                        schedule: account.schedule,
-                        nextPaymentTs: new anchor.BN(account.next_payment_ts ?? account.nextPaymentTs ?? 0),
-                        lastPaidTs: new anchor.BN(account.last_paid_ts ?? account.lastPaidTs ?? 0),
-                    };
-                    return normalized;
+                    const account = program.coder.accounts.decode("Employee", acc.account.data);
+                    return normalizeEmployeeData(account);
                 } catch (firstErr) {
-                     // Fallback for older Anchor behavior or misconfiguration
+                     // Fallback for case sensitivity or legacy IDL
                      try {
-                        const account: any = program.coder.accounts.decode("employee", acc.account.data);
-                        const normalized: EmployeeData = {
-                            payroll: account.payroll,
-                            wallet: account.wallet,
-                            name: account.name,
-                            role: account.role,
-                            encryptedSalary: Array.isArray(account.ciphertext) ? account.ciphertext : (account.encryptedSalary || account.encrypted_salary || []),
-                        inputType: account.input_type ?? account.inputType ?? 4,
-                        pin: account.pin,
-                            schedule: account.schedule,
-                            nextPaymentTs: new anchor.BN(account.next_payment_ts ?? account.nextPaymentTs ?? 0),
-                            lastPaidTs: new anchor.BN(account.last_paid_ts ?? account.lastPaidTs ?? 0),
-                        };
-                        return normalized;
+                        // @ts-ignore
+                        const account = program.coder.accounts.decode("employee", acc.account.data);
+                        return normalizeEmployeeData(account);
                      } catch (secondErr) {
-                         // Fallback for LEGACY accounts (pre-timestamp)
-                         console.warn("Standard decode failed, trying legacy decode...", secondErr);
+                         // Fallback for LEGACY accounts (pre-timestamp or layout mismatch)
+                         // console.warn("Standard decode failed, trying legacy decode...", secondErr);
                          return decodeLegacyEmployee(acc.account.data);
                      }
                 }
@@ -357,4 +315,22 @@ export async function fetchAllEmployees(
         console.error("Error fetching all employees:", err);
         return [];
     }
+}
+
+// Helper to normalize data from Anchor decoder
+function normalizeEmployeeData(account: any): EmployeeData {
+    return {
+        payroll: account.payroll,
+        wallet: account.wallet,
+        name: account.name,
+        role: account.role,
+        encryptedSalary: Array.isArray(account.ciphertext) ? account.ciphertext : 
+                         (Buffer.isBuffer(account.ciphertext) ? Array.from(account.ciphertext) : 
+                         (account.encryptedSalary || account.encrypted_salary || [])),
+        inputType: account.input_type ?? account.inputType ?? 4,
+        pin: account.pin,
+        schedule: account.schedule,
+        nextPaymentTs: new anchor.BN(account.next_payment_ts ?? account.nextPaymentTs ?? 0),
+        lastPaidTs: new anchor.BN(account.last_paid_ts ?? account.lastPaidTs ?? 0),
+    };
 }
