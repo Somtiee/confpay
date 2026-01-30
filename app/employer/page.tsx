@@ -110,7 +110,16 @@ export default function EmployerDashboard() {
       if (now - lastCheckTime.current < 5000) return; // Prevent spamming on rapid connection changes
       lastCheckTime.current = now;
 
-      setIsCheckingCompany(true);
+      // 0. Optimistic Cache Check
+      const cachedReg = localStorage.getItem("employer_registered") === "true";
+      if (cachedReg) {
+          console.log("Using cached registration status");
+          setIsRegistered(true);
+          setIsCheckingCompany(false); // Unblock UI
+      } else {
+          setIsCheckingCompany(true);
+      }
+
       try {
         const exists = await checkCompanyRegistration(connection, publicKey);
         setIsRegistered(exists);
@@ -159,6 +168,26 @@ export default function EmployerDashboard() {
           try {
               // Load Employees
               console.log("Loading employees from on-chain...");
+
+              // 1. Try Cache First (Stale-While-Revalidate)
+              const CACHE_KEY = `confpay_employees_${publicKey.toBase58()}`;
+              const cached = localStorage.getItem(CACHE_KEY);
+              let hasCachedData = false;
+              if (cached) {
+                  try {
+                      const parsed = JSON.parse(cached);
+                      if (Array.isArray(parsed) && parsed.length > 0) {
+                          console.log("Loaded cached employees:", parsed.length);
+                          setEmployees(parsed);
+                          setIsLoaded(true);
+                          hasCachedData = true;
+                      }
+                  } catch (e) {
+                      console.warn("Invalid cache", e);
+                  }
+              }
+
+              // 2. Fetch Fresh Data
               const onChainData = await fetchAllEmployees(wallet, publicKey.toBase58(), connection);
               console.log(`Successfully loaded ${onChainData.length} employees.`);
               

@@ -254,24 +254,41 @@ export async function fetchAllEmployees(
         // Employee Discriminator: sha256("account:Employee")[..8]
         // [98, 238, 61, 252, 130, 77, 105, 67]
         // Base58: Gv8UvX61jE5 (approx, but we use bytes)
-        const EMPLOYEE_DISCRIMINATOR = Buffer.from([98, 238, 61, 252, 130, 77, 105, 67]);
+        // Pre-computed Base58 string to save encoding time
+        const EMPLOYEE_DISCRIMINATOR_B58 = "Gv8UvX61jE5"; // 98, 238, 61, 252, 130, 77, 105, 67
 
-        const accounts = await provider.connection.getProgramAccounts(PROGRAM_ID, {
-            filters: [
-                {
-                    memcmp: {
-                        offset: 0, 
-                        bytes: anchor.utils.bytes.bs58.encode(EMPLOYEE_DISCRIMINATOR),
-                    },
-                },
-                {
-                    memcmp: {
-                        offset: 8, // After discriminator
-                        bytes: payrollPDA.toBase58(),
-                    },
-                },
-            ],
-        });
+        let accounts: any[] = [];
+        let retries = 3;
+        let delay = 2000;
+
+        while (retries > 0) {
+            try {
+                accounts = await provider.connection.getProgramAccounts(PROGRAM_ID, {
+                    filters: [
+                        {
+                            memcmp: {
+                                offset: 0, 
+                                bytes: EMPLOYEE_DISCRIMINATOR_B58,
+                            },
+                        },
+                        {
+                            memcmp: {
+                                offset: 8, // After discriminator
+                                bytes: payrollPDA.toBase58(),
+                            },
+                        },
+                    ],
+                });
+                break; // Success
+            } catch (e: any) {
+                const msg = e.message || JSON.stringify(e);
+                console.warn(`[fetchAllEmployees] Fetch failed (${msg}). Retrying in ${delay}ms...`);
+                retries--;
+                if (retries === 0) throw e;
+                await new Promise(r => setTimeout(r, delay));
+                delay *= 1.5;
+            }
+        }
         
         console.log("[fetchAllEmployees] Found accounts:", accounts.length);
 
