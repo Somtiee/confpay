@@ -1,0 +1,221 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --foreground-rgb: 15, 23, 42;
+  --primary-blue: #2563eb;
+  --primary-cyan: #06b6d4;
+  --dark-blue: #0f172a;
+  --accent-light: #e8f7ff;
+}
+
+* {
+  box-sizing: border-box;
+  padding: 0;
+  margin: 0;
+}
+
+body {
+  color: rgb(var(--foreground-rgb));
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at top right, #e0f2fe 0%, #ffffff 40%, #f0f9ff 100%);
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+
+/* Global Dark Mode: invert everything */
+html.darkmode-invert {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+html.darkmode-invert img,
+html.darkmode-invert video,
+html.darkmode-invert iframe {
+  filter: invert(1) hue-rotate(180deg);
+}
+
+a {
+  color: inherit;
+  text-decoration: none;
+}
+
+/* Animations */
+@keyframes fadeIn {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(20px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+
+.animate-fade-in {
+  animation: fadeIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-slide-up {
+  animation: slideUp 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+  opacity: 0;
+}
+
+.animate-scale-in {
+  animation: scaleIn 0.8s cubic-bezier(0.16, 1, 0.3, 1) forwards;
+}
+
+.animate-delay-100 { animation-delay: 0.1s; }
+.animate-delay-200 { animation-delay: 0.2s; }
+.animate-delay-300 { animation-delay: 0.3s; }
+
+/* Components */
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary-cyan), var(--primary-blue));
+  color: white;
+  padding: 0.875rem 1.75rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: none;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  box-shadow: 0 4px 14px rgba(6, 182, 212, 0.4);
+  letter-spacing: 0.025em;
+}
+
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(6, 182, 212, 0.5);
+  filter: brightness(1.1);
+}
+
+.btn-primary:active {
+  transform: translateY(0);
+}
+
+.btn-secondary {
+  background: rgba(255, 255, 255, 0.8);
+  backdrop-filter: blur(8px);
+  color: var(--primary-blue);
+  padding: 0.875rem 1.75rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  border: 1px solid #bae6fd;
+  cursor: pointer;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.btn-secondary:hover {
+  background: #ffffff;
+  border-color: var(--primary-blue);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(37, 99, 235, 0.15);
+}
+
+.card {
+  background: rgba(255, 255, 255, 0.7);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-radius: 1.5rem;
+  box-shadow: 0 20px 40px -5px rgba(15, 23, 42, 0.1), 0 10px 20px -5px rgba(15, 23, 42, 0.05);
+  padding: 2.5rem;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1), box-shadow 0.3s cubic-bezier(0.4, 0, 0.2, 1), border-color 0.3s ease;
+}
+
+.card:hover {
+  transform: translateY(-5px);
+  box-shadow: 0 25px 50px -12px rgba(15, 23, 42, 0.15);
+  border-color: rgba(255, 255, 255, 0.9);
+}
+
+.text-gradient {
+  background: linear-gradient(135deg, var(--dark-blue), var(--primary-blue));
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.logo-blend {
+  mix-blend-mode: multiply;
+  filter: contrast(1.1);
+}
+
+.logo-title {
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  font-weight: 900;
+  text-shadow: 1px 1px 0px rgba(0,0,0,0.1);
+}
+
+.neon-title {
+  position: relative;
+  transition: color 0.3s ease, text-shadow 0.3s ease, transform 0.3s ease;
+  text-shadow: 0 0 6px rgba(56, 189, 248, 0.3);
+}
+
+.neon-title:hover {
+  color: var(--primary-cyan);
+  text-shadow: 0 0 14px rgba(56, 189, 248, 0.9);
+  transform: translateY(-1px);
+}
+
+.heading-cyan {
+  transition: color 0.3s ease, text-shadow 0.3s ease;
+  text-shadow: 0 0 8px rgba(56, 189, 248, 0.35);
+}
+
+.heading-cyan:hover {
+  color: var(--primary-blue);
+  text-shadow: 0 0 16px rgba(56, 189, 248, 0.9);
+}
+
+.cyan-glow {
+  transition: box-shadow 0.3s ease, transform 0.3s ease, border-color 0.3s ease,
+    color 0.3s ease, background-color 0.3s ease;
+}
+
+.cyan-glow:hover {
+  box-shadow: 0 0 18px rgba(6, 182, 212, 0.55);
+  transform: translateY(-1px);
+}
+
+/* Logo Switching Logic */
+.logo-light {
+  display: block;
+}
+
+.logo-dark {
+  display: none;
+}
+
+html.darkmode-invert .logo-light {
+  display: none;
+}
+
+html.darkmode-invert .logo-dark {
+  display: block;
+}
+
+/* Wallet Adapter Customization */
+
+.wallet-adapter-button {
+  background-color: var(--dark-blue) !important;
+  font-family: inherit !important;
+  border-radius: 0.75rem !important;
+  height: 48px !important;
+  padding: 0 24px !important;
+  transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1) !important;
+  font-weight: 600 !important;
+}
+
+.wallet-adapter-button:hover {
+  background-color: var(--primary-blue) !important;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.2);
+}

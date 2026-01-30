@@ -1,0 +1,469 @@
+{
+  "address": "EpWKv3uvNXVioG5J7WhyDoPy1G6LJ9vTbTcbiKZo6Jjw",
+  "metadata": {
+    "name": "confpay",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "Created with Anchor"
+  },
+  "instructions": [
+    {
+      "name": "add_employee",
+      "discriminator": [
+        14,
+        82,
+        239,
+        156,
+        50,
+        90,
+        189,
+        61
+      ],
+      "accounts": [
+        {
+          "name": "payroll",
+          "writable": true
+        },
+        {
+          "name": "employee",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  109,
+                  112,
+                  108,
+                  111,
+                  121,
+                  101,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payroll"
+              },
+              {
+                "kind": "account",
+                "path": "employee_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "employee_wallet"
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "role",
+          "type": "string"
+        },
+        {
+          "name": "ciphertext",
+          "type": "bytes"
+        },
+        {
+          "name": "input_type",
+          "type": "u8"
+        },
+        {
+          "name": "pin",
+          "type": "string"
+        },
+        {
+          "name": "schedule",
+          "type": "string"
+        },
+        {
+          "name": "next_payment_ts",
+          "type": "i64"
+        }
+      ]
+    },
+    {
+      "name": "initialize_payroll",
+      "discriminator": [
+        167,
+        26,
+        70,
+        176,
+        167,
+        66,
+        216,
+        138
+      ],
+      "accounts": [
+        {
+          "name": "payroll",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  112,
+                  97,
+                  121,
+                  114,
+                  111,
+                  108,
+                  108
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "admin"
+              }
+            ]
+          }
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "company_name",
+          "type": "string"
+        }
+      ]
+    },
+    {
+      "name": "pay_employee",
+      "discriminator": [
+        202,
+        231,
+        86,
+        72,
+        42,
+        110,
+        167,
+        118
+      ],
+      "accounts": [
+        {
+          "name": "payroll"
+        },
+        {
+          "name": "employee",
+          "writable": true
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "remove_employee",
+      "discriminator": [
+        16,
+        10,
+        234,
+        98,
+        224,
+        29,
+        67,
+        64
+      ],
+      "accounts": [
+        {
+          "name": "payroll",
+          "writable": true
+        },
+        {
+          "name": "employee",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  109,
+                  112,
+                  108,
+                  111,
+                  121,
+                  101,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payroll"
+              },
+              {
+                "kind": "account",
+                "path": "employee_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "employee_wallet"
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        }
+      ],
+      "args": []
+    },
+    {
+      "name": "update_employee",
+      "discriminator": [
+        73,
+        4,
+        138,
+        145,
+        85,
+        224,
+        29,
+        186
+      ],
+      "accounts": [
+        {
+          "name": "employee",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  109,
+                  112,
+                  108,
+                  111,
+                  121,
+                  101,
+                  101
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "payroll"
+              },
+              {
+                "kind": "account",
+                "path": "employee_wallet"
+              }
+            ]
+          }
+        },
+        {
+          "name": "employee_wallet"
+        },
+        {
+          "name": "payroll"
+        },
+        {
+          "name": "admin",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "name",
+          "type": "string"
+        },
+        {
+          "name": "role",
+          "type": "string"
+        },
+        {
+          "name": "ciphertext",
+          "type": "bytes"
+        },
+        {
+          "name": "input_type",
+          "type": "u8"
+        },
+        {
+          "name": "pin",
+          "type": "string"
+        },
+        {
+          "name": "schedule",
+          "type": "string"
+        },
+        {
+          "name": "next_payment_ts",
+          "type": "i64"
+        }
+      ]
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Employee",
+      "discriminator": [
+        98,
+        238,
+        61,
+        252,
+        130,
+        77,
+        105,
+        67
+      ]
+    },
+    {
+      "name": "Payroll",
+      "discriminator": [
+        194,
+        86,
+        146,
+        159,
+        169,
+        29,
+        234,
+        51
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "EmployeePaid",
+      "discriminator": [
+        19,
+        37,
+        215,
+        156,
+        93,
+        252,
+        21,
+        12
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "Unauthorized",
+      "msg": "Unauthorized action"
+    }
+  ],
+  "types": [
+    {
+      "name": "Employee",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payroll",
+            "type": "pubkey"
+          },
+          {
+            "name": "wallet",
+            "type": "pubkey"
+          },
+          {
+            "name": "name",
+            "type": "string"
+          },
+          {
+            "name": "role",
+            "type": "string"
+          },
+          {
+            "name": "pin",
+            "type": "string"
+          },
+          {
+            "name": "schedule",
+            "type": "string"
+          },
+          {
+            "name": "ciphertext",
+            "type": "bytes"
+          },
+          {
+            "name": "input_type",
+            "type": "u8"
+          },
+          {
+            "name": "next_payment_ts",
+            "type": "i64"
+          },
+          {
+            "name": "last_paid_ts",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "EmployeePaid",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "payroll",
+            "type": "pubkey"
+          },
+          {
+            "name": "employee",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Payroll",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "admin",
+            "type": "pubkey"
+          },
+          {
+            "name": "employee_count",
+            "type": "u64"
+          },
+          {
+            "name": "company_name",
+            "type": "string"
+          }
+        ]
+      }
+    }
+  ]
+}
