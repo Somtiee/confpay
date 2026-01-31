@@ -833,16 +833,34 @@ export default function EmployerDashboard() {
          setProcessingStatus("Updating payment record...");
 
          // 2. Update On-Chain Record (Last Paid & Next Payment Date)
-         await payEmployeeTransaction(
-            anchorWallet,
-            publicKey.toBase58(),
-            emp.address
-         );
+         let recordUpdated = false;
+         try {
+             // 15s timeout for record update
+             const updatePromise = payEmployeeTransaction(
+                anchorWallet,
+                publicKey.toBase58(),
+                emp.address
+             );
+             
+             const timeoutPromise = new Promise((_, reject) => 
+                setTimeout(() => reject(new Error("Record update timed out")), 15000)
+             );
+
+             await Promise.race([updatePromise, timeoutPromise]);
+             recordUpdated = true;
+         } catch (updateError) {
+             console.warn("Record update failed or timed out:", updateError);
+             // We don't block the UI for this error, since money was sent
+         }
 
          setLoading(false); // Unlock UI immediately
          setProcessingStatus("");
          
-         alert(`Payment successful! SOL sent & Record updated.`);
+         if (recordUpdated) {
+             alert(`Payment successful! SOL sent & Record updated.`);
+         } else {
+             alert(`Payment successful! SOL sent.\n\nNote: On-chain record update failed (or timed out). 'Last Paid' date may lag.`);
+         }
          
          // Update Local State Optimistically
          setEmployees(prev => prev.map(e => {
