@@ -220,112 +220,113 @@ export async function fetchPaymentHistory(
   
   if (signatureList.length === 0) return [];
 
-  // 3. Fetch Transaction Details SEQUENTIALLY
-  // We process 1 by 1 to avoid "Too Many Requests" (429)
+  // 3. Fetch Transaction Details in Batches
+  // We process in chunks to improve speed while respecting rate limits
   const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
+  const CHUNK_SIZE = 20; // Safe batch size for public RPCs
 
-  for (let i = 0; i < signatureList.length; i++) {
-      const sig = signatureList[i];
-      console.log(`[PaymentHistory] Processing tx ${i + 1}/${signatureList.length}: ${sig.slice(0, 8)}...`);
+  for (let i = 0; i < signatureList.length; i += CHUNK_SIZE) {
+      const batch = signatureList.slice(i, i + CHUNK_SIZE);
+      console.log(`[PaymentHistory] Processing batch ${Math.floor(i/CHUNK_SIZE) + 1}/${Math.ceil(signatureList.length/CHUNK_SIZE)} (${batch.length} txs)`);
 
+      let txs: (ParsedTransactionWithMeta | null)[] = [];
       let retries = 3;
-      let delay = 1000;
-      let tx: ParsedTransactionWithMeta | null = null;
-
-      while (retries > 0 && !tx) {
+      
+      while (retries > 0) {
           try {
-              // Fetch SINGLE transaction
-              const result = await connection.getParsedTransaction(sig, {
+              txs = await connection.getParsedTransactions(batch, {
                   maxSupportedTransactionVersion: 0,
                   commitment: "confirmed"
               });
-              tx = result;
+              break;
           } catch (e: any) {
-              console.warn(`[PaymentHistory] Failed to fetch tx ${sig} (Retries left: ${retries - 1})`);
+              console.warn(`[PaymentHistory] Batch fetch failed (Retries: ${retries - 1})`, e);
               retries--;
-              if (retries > 0) {
-                  await wait(delay);
-                  delay *= 2;
-              }
+              if (retries > 0) await wait(1000 * (4 - retries)); // Backoff
           }
       }
 
-      if (!tx || !tx.meta || tx.meta.err) {
-          // Skip failed or errored transactions
-          continue;
-      }
+      // Process the batch
+      for (let j = 0; j < batch.length; j++) {
+          const sig = batch[j];
+          const tx = txs[j]; // Corresponding result (or null/undefined if fetch failed)
 
-      try {
-          const timestamp = (tx.blockTime || 0) * 1000;
-          
-          // Filter out cleared history
-          if (timestamp <= clearedTs) continue;
-
-          // Check inner instructions for transfers
-          let allInstructions: any[] = [...tx.transaction.message.instructions];
-          if (tx.meta.innerInstructions) {
-              tx.meta.innerInstructions.forEach(inner => {
-                  allInstructions = [...allInstructions, ...inner.instructions];
-              });
+          if (!tx || !tx.meta || tx.meta.err) {
+              continue;
           }
 
-          for (const ix of allInstructions) {
-              let isTransfer = false;
-              let transferInfo: any = null;
-
-              if ("program" in ix && ix.program === "system" && ix.parsed.type === "transfer") {
-                  isTransfer = true;
-                  transferInfo = ix.parsed.info;
-              } 
+          try {
+              const timestamp = (tx.blockTime || 0) * 1000;
               
-              if (isTransfer && transferInfo) {
-                  const { destination, lamports, source } = transferInfo;
+              // Filter out cleared history
+              if (timestamp <= clearedTs) continue;
 
-                  // Check if Sender is:
-                  // 1. Current Wallet (if Employer)
-                  // 2. Payroll PDA (if Employer)
-                  // 3. Additional Sender (e.g. Bot)
-                  const isSender = 
-                      source === walletAddress || 
-                      (payrollPDA && source === payrollPDA.toBase58()) ||
-                      additionalSenders.includes(source);
+              // Check inner instructions for transfers
+              let allInstructions: any[] = [...tx.transaction.message.instructions];
+              if (tx.meta.innerInstructions) {
+                  tx.meta.innerInstructions.forEach(inner => {
+                      allInstructions = [...allInstructions, ...inner.instructions];
+                  });
+              }
 
-                  // Check if Recipient is one of our known employees
-                  const isRecipientEmployee = additionalAccountsToScan.includes(destination);
+              for (const ix of allInstructions) {
+                  let isTransfer = false;
+                  let transferInfo: any = null;
 
-                  const isRecipient = destination === walletAddress;
-                  let isValid = false;
+                  if ("program" in ix && ix.program === "system" && ix.parsed.type === "transfer") {
+                      isTransfer = true;
+                      transferInfo = ix.parsed.info;
+                  } 
+                  
+                  if (isTransfer && transferInfo) {
+                      const { destination, lamports, source } = transferInfo;
 
-                  if (isEmployer) {
-                      // Employer View: Show ONLY transfers to employees (from Employer or Bot)
-                      // This filters out "manual" transfers to non-employees or funding transfers (Employer -> Bot)
-                      if (isRecipientEmployee && (isSender || additionalSenders.includes(source))) {
-                          isValid = true;
+                      // Check if Sender is:
+                      // 1. Current Wallet (if Employer)
+                      // 2. Payroll PDA (if Employer)
+                      // 3. Additional Sender (e.g. Bot)
+                      const isSender = 
+                          source === walletAddress || 
+                          (payrollPDA && source === payrollPDA.toBase58()) ||
+                          additionalSenders.includes(source);
+
+                      // Check if Recipient is one of our known employees
+                      const isRecipientEmployee = additionalAccountsToScan.includes(destination);
+
+                      const isRecipient = destination === walletAddress;
+                      let isValid = false;
+
+                      if (isEmployer) {
+                          // Employer View: Show ONLY transfers to employees (from Employer or Bot)
+                          // This filters out "manual" transfers to non-employees or funding transfers (Employer -> Bot)
+                          if (isRecipientEmployee && (isSender || additionalSenders.includes(source))) {
+                              isValid = true;
+                          }
+                      } else {
+                          // Worker View: Show incoming transfers
+                          if (isRecipient) isValid = true;
                       }
-                  } else {
-                      // Worker View: Show incoming transfers
-                      if (isRecipient) isValid = true;
-                  }
 
-                  if (isValid) {
-                      history.push({
-                          signature: sig,
-                          timestamp,
-                          amount: lamports / LAMPORTS_PER_SOL,
-                          sender: source,
-                          recipient: destination,
-                          status: "success",
-                      });
-                      // Break inner loop (instructions) after finding valid transfer
-                      break;
+                      if (isValid) {
+                          history.push({
+                              signature: sig,
+                              timestamp,
+                              amount: lamports / LAMPORTS_PER_SOL,
+                              sender: source,
+                              recipient: destination,
+                              status: "success",
+                          });
+                          // Break inner loop (instructions) after finding valid transfer
+                          break;
+                      }
                   }
               }
+          } catch (parseError) {
+              console.error(`[PaymentHistory] Error parsing tx ${sig}`, parseError);
           }
-      } catch (parseError) {
-          console.error(`[PaymentHistory] Error parsing tx ${sig}`, parseError);
       }
 
-      // Mandatory delay between requests to be polite
+      // Polite delay between batches
       await wait(500);
   }
 

@@ -839,6 +839,9 @@ export default function EmployerDashboard() {
             emp.address
          );
 
+         setLoading(false); // Unlock UI immediately
+         setProcessingStatus("");
+         
          alert(`Payment successful! SOL sent & Record updated.`);
          
          // Update Local State Optimistically
@@ -854,9 +857,11 @@ export default function EmployerDashboard() {
              return e;
          }));
 
-         // Refresh history
-         await loadHistory();
+         // Refresh history in background
+         loadHistory();
      } catch (e: any) {
+         setLoading(false);
+         setProcessingStatus("");
          console.error("Payment failed", e);
          alert("Payment failed: " + (e.message || "Unknown error"));
      } finally {
@@ -980,7 +985,7 @@ export default function EmployerDashboard() {
                   {loading ? (
                     <>
                        <div className="w-4 h-4 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                       Decrypting...
+                       {processingStatus || "Processing..."}
                     </>
                   ) : isDecrypted ? (
                     <>
