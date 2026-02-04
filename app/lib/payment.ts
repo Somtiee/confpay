@@ -242,6 +242,9 @@ export async function fetchPaymentHistory(
           } catch (e: any) {
               console.warn(`[PaymentHistory] Batch fetch failed (Retries: ${retries - 1})`, e);
               retries--;
+              if (retries === 0) {
+                  throw new Error(`Failed to fetch transaction batch: ${e.message || JSON.stringify(e)}`);
+              }
               if (retries > 0) await wait(1000 * (4 - retries)); // Backoff
           }
       }

@@ -64,6 +64,7 @@ export default function EmployerDashboard() {
   const [paymentHistory, setPaymentHistory] = useState<PaymentRecord[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
   const [historyError, setHistoryError] = useState<string | null>(null);
+  const [retryHistoryOnConnectionChange, setRetryHistoryOnConnectionChange] = useState(false);
   const [isRegistered, setIsRegistered] = useState(false);
   const [registrationError, setRegistrationError] = useState<string | null>(null);
 
@@ -972,6 +973,18 @@ export default function EmployerDashboard() {
           document.documentElement.classList.add('darkmode-invert');
       }
   }, []);
+
+  // AUTO-RETRY LOGIC: When connection changes (after RPC switch), retry history load
+  useEffect(() => {
+      if (retryHistoryOnConnectionChange && connection && activeTab === 'history') {
+          console.log("Connection changed, retrying history load...");
+          setRetryHistoryOnConnectionChange(false);
+          // Small delay to ensure connection is ready
+          setTimeout(() => {
+              loadHistory();
+          }, 500);
+      }
+  }, [connection, retryHistoryOnConnectionChange, activeTab]);
 
   return (
     <div className="min-h-screen bg-gray-50 p-4 md:p-8 animate-fade-in">

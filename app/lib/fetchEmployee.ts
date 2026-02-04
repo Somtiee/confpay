@@ -306,7 +306,7 @@ export async function fetchAllEmployees(
         
     } catch (err) {
         console.error("Error fetching all employees:", err);
-        return [];
+        throw err;
     }
 }
 
