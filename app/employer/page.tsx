@@ -955,7 +955,18 @@ export default function EmployerDashboard() {
         setPaymentHistory(history);
     } catch (e: any) {
          console.error("History refresh failed", e);
-         setHistoryError("Failed to load history. Please try again.");
+         const msg = e.message || JSON.stringify(e);
+         
+         // AUTO-SWITCH LOGIC:
+         // If we hit a network limit (429) or forbidden (403), switch the RPC endpoint automatically.
+         // The useEffect below will detect the connection change and retry the load.
+         if (msg.includes("429") || msg.includes("403") || msg.includes("fetch failed") || msg.includes("Network request failed") || msg.includes("Rate Limit")) {
+             setHistoryError("Network limit reached. Switching RPC node... Auto-retrying.");
+             setRetryHistoryOnConnectionChange(true);
+             switchEndpoint();
+         } else {
+             setHistoryError("Failed to load history. Please try again.");
+         }
      } finally {
          setHistoryLoading(false);
      }

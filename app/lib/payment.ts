@@ -192,8 +192,14 @@ export async function fetchPaymentHistory(
               break; // Success, break retry loop
           } catch (e: any) {
               const msg = e.message || JSON.stringify(e);
-              if (msg.includes("403") || msg.includes("429") || msg.includes("Access forbidden") || msg.includes("fetch failed") || msg.includes("CORS")) {
-                   console.warn(`[fetchSignatures] Network Limit (${msg}). Retrying in ${delay}ms... (${retries} left)`);
+              
+              // FAIL FAST: If 429/403, throw immediately to trigger RPC switch
+              if (msg.includes("403") || msg.includes("429") || msg.includes("Too many requests")) {
+                   throw new Error(`RPC Rate Limit Exceeded: ${msg}`);
+              }
+
+              if (msg.includes("Access forbidden") || msg.includes("fetch failed") || msg.includes("CORS")) {
+                   console.warn(`[fetchSignatures] Network Error (${msg}). Retrying in ${delay}ms... (${retries} left)`);
                    retries--;
                    if (retries === 0) console.error(`Failed to fetch signatures for ${address.toBase58()} after retries.`);
                    await new Promise(r => setTimeout(r, delay));
@@ -223,7 +229,7 @@ export async function fetchPaymentHistory(
   // 3. Fetch Transaction Details in Batches
   // We process in chunks to improve speed while respecting rate limits
   const wait = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-  const CHUNK_SIZE = 20; // Safe batch size for public RPCs
+  const CHUNK_SIZE = 5; // Reduced from 20 to 5 to be extremely gentle on free RPCs
 
   for (let i = 0; i < signatureList.length; i += CHUNK_SIZE) {
       const batch = signatureList.slice(i, i + CHUNK_SIZE);
@@ -240,14 +246,27 @@ export async function fetchPaymentHistory(
               });
               break;
           } catch (e: any) {
+              const msg = e.message || JSON.stringify(e);
               console.warn(`[PaymentHistory] Batch fetch failed (Retries: ${retries - 1})`, e);
+              
+              // FAIL FAST STRATEGY:
+              // If we hit a rate limit (429) or Forbidden (403), do NOT retry on the same endpoint.
+              // Throw immediately so the UI can switch to the next RPC provider.
+              if (msg.includes("429") || msg.includes("403") || msg.includes("Too many requests")) {
+                  throw new Error(`RPC Rate Limit Exceeded: ${msg}`);
+              }
+
               retries--;
               if (retries === 0) {
-                  throw new Error(`Failed to fetch transaction batch: ${e.message || JSON.stringify(e)}`);
+                  throw new Error(`Failed to fetch transaction batch: ${msg}`);
               }
-              if (retries > 0) await wait(1000 * (4 - retries)); // Backoff
+              if (retries > 0) await wait(1000 * (4 - retries)); // Backoff for non-429 errors
           }
       }
+
+      // Add a polite delay AFTER each batch to let the rate limit bucket refill
+      // This slows down loading but significantly prevents 429s
+      await wait(500);
 
       // Process the batch
       for (let j = 0; j < batch.length; j++) {
