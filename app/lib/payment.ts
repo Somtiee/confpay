@@ -217,7 +217,7 @@ export async function fetchPaymentHistory(
   allSignatures.sort((a, b) => (b.blockTime || 0) - (a.blockTime || 0));
 
   // Limit total transactions to process to avoid long loading times and 429s
-  const topSignatures = allSignatures.slice(0, 200);
+  const topSignatures = allSignatures.slice(0, 50); // Reduced from 200 to 50 for performance
 
   console.log(`[PaymentHistory] Total unique signatures to parse: ${topSignatures.length}`);
 
@@ -249,6 +249,31 @@ export async function fetchPaymentHistory(
               const msg = e.message || JSON.stringify(e);
               console.warn(`[PaymentHistory] Batch fetch failed (Retries: ${retries - 1})`, e);
               
+              // SPECIFIC FIX FOR HELIUS FREE TIER:
+              // Helius Free Tier blocks "Batch Requests" (which getParsedTransactions uses).
+              // If we see this error, we must fallback to fetching individually.
+              if (msg.includes("Batch requests are only available for paid plans") || msg.includes("Method not found")) {
+                  console.log("[PaymentHistory] Batching blocked. Switching to individual fetch strategy...");
+                  try {
+                      // Fetch individually in parallel (but limited to chunk size)
+                      const results = await Promise.all(
+                          batch.map(sig => connection.getParsedTransaction(sig, {
+                              maxSupportedTransactionVersion: 0,
+                              commitment: "confirmed"
+                          }))
+                      );
+                      txs = results;
+                      break; // Success!
+                  } catch (individualError: any) {
+                      console.error("Individual fetch fallback failed", individualError);
+                      // If individual fetch also fails (e.g. Rate Limit), let the outer loop handle retry/throw
+                      const innerMsg = individualError.message || JSON.stringify(individualError);
+                      if (innerMsg.includes("429") || innerMsg.includes("403")) {
+                          throw new Error(`RPC Rate Limit Exceeded (Individual): ${innerMsg}`);
+                      }
+                  }
+              }
+
               // FAIL FAST STRATEGY:
               // If we hit a rate limit (429) or Forbidden (403), do NOT retry on the same endpoint.
               // Throw immediately so the UI can switch to the next RPC provider.
